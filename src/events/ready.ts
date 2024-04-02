@@ -5,7 +5,7 @@ import djs_client from '../client';
 import logger from '../logging';
 
 djs_client.once(Events.ClientReady, async (bot) => {
-	console.log(`Ready! Logged in as ${bot.user.tag}`);
+	logger.notice(`Ready! Logged in as ${bot.user.tag}`);
 	bot.user.setPresence({
 		activities: [
 			{

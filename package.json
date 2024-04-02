@@ -20,12 +20,10 @@
     "discord-api-types": "^0.37.76",
     "discord.js": "latest",
     "eslint": "^8.56.0",
-    "pino": "^8.19.0",
-    "pino-pretty": "^10.3.1",
-    "pino-roll": "^1.0.0-rc.1",
     "snappy": "^7.2.2",
     "typescript": "^5.0.0",
     "typescript-eslint": "^7.0.1",
+    "winston": "^3.13.0",
     "zod": "^3.22.4"
   }
 }

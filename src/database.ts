@@ -4,17 +4,17 @@ import fs from 'fs/promises';
 import logger from './logging';
 import { compress, uncompress } from 'snappy';
 import type { Metafile, Subscriber } from './types/channelType';
-console.log('checking for data directory');
+logger.debug('checking for data directory');
 await fs.readdir('data').catch(async (e) => {
-	console.log(
+	logger.debug(
 		"There wasnt a data dir so we're making it now. The original error: " + e,
 	);
 	await fs.mkdir('data');
-	console.log('Data directory has been made.');
+	logger.debug('Data directory has been made.');
 });
-console.log('checking for data/meta.json');
+logger.debug('checking for data/meta.json');
 await fs.stat('data/meta.json').catch(async (e) => {
-	console.log(
+	logger.debug(
 		"There wasnt a data/meta.json file so we're making it now. The original error: " +
 			e,
 	);
@@ -27,7 +27,7 @@ await fs.stat('data/meta.json').catch(async (e) => {
 			}),
 		),
 	);
-	console.log('data/meta.json file has been made.');
+	logger.debug('data/meta.json file has been made.');
 });
 
 const metaFile = Bun.file('data/meta.json');
@@ -136,26 +136,28 @@ async function refreshFile() {
 		lastSaveTime = start;
 		updatePossible = false;
 		const jsonifiedData = JSON.stringify({ youtube_channels, subscribes });
-		const data = await compress(jsonifiedData).catch(console.error);
+		const data = await compress(jsonifiedData).catch((e) => {
+			logger.error(e);
+		}); // type error quick fix
 		if (!data) {
 			console.log('Compressed data is null somehow!');
 		} else {
 			await Bun.write('data/meta_uncompressed.json', jsonifiedData).catch(
 				console.error,
 			);
-			await Bun.write('data/meta_temporary.json', data).catch(console.error);
+			await Bun.write('data/meta_temporary.json', data).catch(logger.error);
 			if (process.argv.findIndex((val) => val == '--dev') != -1)
 				await Bun.write(
 					'data/meta_developer.json',
 					JSON.stringify({ youtube_channels, subscribes }, null, 2),
-				).catch(console.error); // uncompressed. for dev mode!
+				).catch(logger.error); // uncompressed. for dev mode!
 			await fs
 				.rename('data/meta_temporary.json', 'data/meta.json')
-				.catch(console.error); // so that it doesnt corrupt when power goes out or the app crashes
+				.catch(logger.error); // so that it doesnt corrupt when power goes out or the app crashes
 			// UPDATE, it corrupted :)
 		}
 	} catch (e) {
-		console.error(e);
+		logger.error(e);
 	} finally {
 		updatePossible = true; // allow saving again
 	}
@@ -167,7 +169,7 @@ setInterval(() => {
 		updatePossible == false
 	) {
 		updatePossible = true; // force save if it gets stuck
-		console.log(
+		logger.warn(
 			'saving was locked for ' +
 				Math.floor(performance.now() - lastSaveTime) +
 				'ms, so we forced it to work again. this should rarely happen though...',

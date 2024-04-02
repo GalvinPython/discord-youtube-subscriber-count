@@ -1,0 +1,1 @@
+while ($true) { bun run start } 

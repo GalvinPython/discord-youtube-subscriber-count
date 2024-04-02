@@ -26,7 +26,7 @@ async function checkForUpdates() {
 				fetchingIDs.push([saved_channel.channel_id, index]);
 				if (
 					fetchingIDs.length >=
-					(config.youtube.api as string != 'innertube'
+					((config.youtube.api as string) != 'innertube'
 						? index == youtube_channels.length - 1
 							? fetchingIDs.length
 							: 50
@@ -35,7 +35,7 @@ async function checkForUpdates() {
 					const ytIDs = fetchingIDs;
 					fetchingIDs = [];
 					const response =
-						config.youtube.api as string != 'innertube'
+						(config.youtube.api as string) != 'innertube'
 							? await getChannels(ytIDs.map((a) => a[0]).join(','))
 							: [await getChannel_Main(ytIDs.map((a) => a[0]).join(','))];
 
@@ -81,10 +81,10 @@ async function checkForUpdates() {
 							if (dirExists == false) {
 								const checkIfExists = await fs.readdir('data');
 								if (checkIfExists.findIndex((a) => a == 'history') == -1) {
-									console.log('making history dir to data dir');
+									logger.debug('making history dir to data dir');
 									await fs.mkdir('data/history');
 								} else {
-									console.log(
+									logger.debug(
 										'history dir in data dir already exists. doing nothing now...',
 									);
 								}
@@ -95,7 +95,7 @@ async function checkForUpdates() {
 									'data/history/' + getUser.channel_id + '.csv',
 									`\n${getUser.currentUpdate.hit},${channel.subscribers},${channel.views},${channel.videos}`,
 								)
-								.catch(console.error);
+								.catch(logger.error);
 							// send to the subscribers
 							for (const subscriberID of getUser.subscriberIDs) {
 								try {
@@ -111,7 +111,7 @@ async function checkForUpdates() {
 									)
 										await djs_client.channels
 											.fetch(getTextChannel.discord_channel)
-											.catch(console.error);
+											.catch(logger.error);
 									const DiscordChannel = djs_client.channels.cache?.get(
 										getTextChannel.discord_channel,
 									);
@@ -228,22 +228,22 @@ async function checkForUpdates() {
 														}`.slice(0, 50),
 													}),
 											],
-										}).catch(console.error);
+										}).catch(logger.error);
 								} catch (e) {
-									console.error(e);
+									logger.error(e);
 								}
 							}
 						} catch (e) {
-							console.error(e);
+							logger.error(e);
 						}
 					}
 				}
 			} catch (e) {
-				console.error(e);
+				logger.error(e);
 			}
 		}
 	} catch (e) {
-		console.error(e);
+		logger.error(e);
 	} finally {
 		await Bun.sleep(config.youtube.delay);
 		updatePossible = true; // allow saving again
@@ -257,7 +257,7 @@ setInterval(() => {
 		updatePossible == false
 	) {
 		updatePossible = true; // force save if it gets stuck
-		console.log(
+		logger.warn(
 			'tracking was locked for ' +
 				Math.floor(performance.now() - lastTrackTime) +
 				'ms, so we forced it to work again. this should rarely happen though...',

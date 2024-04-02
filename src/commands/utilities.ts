@@ -19,7 +19,7 @@ const commands: Commands = {
 					ephemeral: false,
 					content: `Ping: ${interaction.client.ws.ping}ms`,
 				})
-				.catch(console.error);
+				.catch(logger.error);
 		},
 	},
 	help: {
@@ -31,7 +31,7 @@ const commands: Commands = {
 			contexts: [0, 1, 2],
 		},
 		execute: async (interaction) => {
-			await client.application?.commands?.fetch().catch(console.error);
+			await client.application?.commands?.fetch().catch(logger.error);
 			const chat_commands = client.application?.commands.cache.map((a) => {
 				return `</${a.name}:${a.id}>: ${a.description}`;
 			});
@@ -40,14 +40,14 @@ const commands: Commands = {
 					ephemeral: true,
 					content: `Commands:\n${chat_commands?.join('\n')}`,
 				})
-				.catch(console.error);
+				.catch(logger.error);
 		},
 	},
 	termsofservice: {
 		data: {
 			options: [],
 			name: 'termsofservice',
-			description: 'Terms of Service. Read what you can and can\'t do.',
+			description: "Terms of Service. Read what you can and can't do.",
 			integration_types: [0, 1],
 			contexts: [0, 1, 2],
 		},
@@ -57,15 +57,15 @@ const commands: Commands = {
 					ephemeral: true,
 					content: `[Terms of Service](https://nia-statistics.com/discord-bot-tos.html)`,
 				})
-				.catch(console.error);
-
+				.catch(logger.error);
 		},
 	},
 	privacypolicy: {
 		data: {
 			options: [],
 			name: 'privacypolicy',
-			description: 'Privacy Policy. See what information is taken with this app.',
+			description:
+				'Privacy Policy. See what information is taken with this app.',
 			integration_types: [0, 1],
 			contexts: [0, 1, 2],
 		},
@@ -75,14 +75,14 @@ const commands: Commands = {
 					ephemeral: true,
 					content: `[Privacy Policy](https://nia-statistics.com/discord-bot-privacy-policy.html)`,
 				})
-				.catch(console.error);
+				.catch(logger.error);
 		},
 	},
 	sourcecode: {
 		data: {
 			options: [],
 			name: 'sourcecode',
-			description: 'Get the link of the app\'s source code.',
+			description: "Get the link of the app's source code.",
 			integration_types: [0, 1],
 			contexts: [0, 1, 2],
 		},
@@ -92,7 +92,7 @@ const commands: Commands = {
 					ephemeral: true,
 					content: `[Github repository](https://github.com/NiaAxern/discord-youtube-subscriber-count)`,
 				})
-				.catch(console.error);
+				.catch(logger.error);
 		},
 	},
 	uptime: {
@@ -111,7 +111,7 @@ const commands: Commands = {
 						2,
 					)} days`,
 				})
-				.catch(console.error);
+				.catch(logger.error);
 		},
 	},
 	usage: {
@@ -147,7 +147,7 @@ const commands: Commands = {
 						`Logs usage: ${(logUsage / 1024 / 1024).toFixed(2)} MB`,
 					].join('\n'),
 				})
-				.catch(console.error);
+				.catch(logger.error);
 		},
 	},
 };

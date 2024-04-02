@@ -190,3 +190,5 @@ data
 # Pino logging
 pino-logger.log
 logs
+
+config.ts
