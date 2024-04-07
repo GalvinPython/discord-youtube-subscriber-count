@@ -8,14 +8,14 @@ djs_client.on(Events.ShardDisconnect, (error) => {
 	throw error;
 });
 djs_client.on(Events.ShardError, (error) => {
-	logger.error(error);
+	console.error(error);
 });
 djs_client.on(Events.ShardReady, () => {
-	logger.notice('Shard is ready');
+	console.log('Shard is ready');
 });
 djs_client.on(Events.ShardReconnecting, () => {
-	logger.notice('Shard is reconnecting');
+	console.log('Shard is reconnecting');
 });
 djs_client.on(Events.ShardResume, () => {
-	logger.notice('Shard has resumed');
+	console.log('Shard has resumed');
 });
