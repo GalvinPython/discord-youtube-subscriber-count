@@ -1,7 +1,6 @@
 /** @format */
 
 import fs from 'fs/promises';
-import logger from './logging';
 
 class Cache {
 	cachepath = 'cache';
@@ -25,12 +24,15 @@ class Cache {
 			return null;
 		}
 		const getData = await getFile.text();
-		this.memCache.set(key, getData); // so that we dont need to do useless fs checks...
+		//this.memCache.set(key, getData); // so that we dont need to do useless fs checks...
+		// we will absolutely do useless fs checks because my ram is used +20GB! 🔥
+		// idk how lmao
 		return getData;
 	}
 	async set(key: string, data: string) {
 		key = key.replace(/[\\/.]/g, '');
-		this.memCache.set(key, data);
+		//this.memCache.set(key, data);
+		// possible memory leak. which is why i wont save it
 		await fs.writeFile(this.cachepath + '/' + 'cache_' + key, data); // we'll save it to the disk...
 	}
 }

@@ -1,7 +1,6 @@
 /** @format */
 
 import fs from 'fs/promises';
-import logger from './logging';
 import { compress, uncompress } from 'snappy';
 import type { Metafile, Subscriber } from './types/channelType';
 console.log('checking for data directory');

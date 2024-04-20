@@ -4,7 +4,6 @@ import './validators/env';
 import './validators/config';
 import { getHashOfFolder } from './utilities';
 import fs from 'fs/promises';
-import logger from './logging';
 const getDir = (await fs.readdir('src/commands')).map((value) => {
 	return 'src/commands/' + value;
 });
@@ -80,3 +79,7 @@ console.log('everything seems to be working fine now.');
 console.log('Initialize client and start the bot as there are no errors.');
 import './client';
 export { cacheSystem };
+
+setInterval(() => {
+	Bun.gc(false); // force gc
+}, 3600 * 1000);

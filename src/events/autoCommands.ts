@@ -3,7 +3,6 @@ import { Events } from 'discord.js';
 import djs_client from '../client';
 
 import commands from '../commands';
-import logger from '../logging';
 
 import type { CommandType } from '../types/commands';
 

@@ -23,14 +23,16 @@ const configSchema = z.object({
 export type Config = z.infer<typeof configSchema>;
 
 import config from '../../config';
-import logger from '../logging';
 
-logger.debug('Validating configuration...');
+console.log('Validating configuration...');
 
 const parsed = configSchema.safeParse(config);
 if (parsed.success === false) {
-	logger.error('❌ Invalid configuration:', parsed.error.flatten().fieldErrors);
+	console.error(
+		'❌ Invalid configuration:',
+		parsed.error.flatten().fieldErrors,
+	);
 	throw new SyntaxError('Invalid configuration');
 }
 
-logger.debug('Configuration seems to be correct...');
+console.log('Configuration seems to be correct...');

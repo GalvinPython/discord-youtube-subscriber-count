@@ -1,7 +1,6 @@
 /** @format */
 
 import fs from 'fs/promises';
-import logger from './logging';
 // save the commands to a map
 const commands = new Map();
 const getDir = (await fs.readdir('src/commands')).map((value) => {

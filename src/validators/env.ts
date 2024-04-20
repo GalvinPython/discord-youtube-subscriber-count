@@ -18,7 +18,6 @@ declare global {
 	}
 }
 
-import logger from '../logging';
 
 console.log('Validating environment variables...');
 

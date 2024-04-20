@@ -1,8 +1,6 @@
 /** @format */
 import type { Commands } from '../types/commands';
 import { heapStats } from 'bun:jsc';
-import { dirSize } from '../utilities';
-import logger from '../logging';
 import client from '../client';
 const commands: Commands = {
 	ping: {
@@ -124,9 +122,7 @@ const commands: Commands = {
 		},
 		execute: async (interaction) => {
 			const heap = heapStats();
-			const cacheUsage = await dirSize('cache');
-			const dataUsage = await dirSize('data');
-			const logUsage = await dirSize('logs');
+			Bun.gc(false); // testing muahahah
 			await interaction
 				.reply({
 					ephemeral: false,
@@ -142,10 +138,9 @@ const commands: Commands = {
 						)} objects, ${heap.protectedObjectCount.toLocaleString(
 							'en-US',
 						)} protected-objects)`,
-						`Cache usage: ${(cacheUsage / 1024 / 1024).toFixed(2)} MB`,
-						`Data usage: ${(dataUsage / 1024 / 1024).toFixed(2)} MB`,
-						`Logs usage: ${(logUsage / 1024 / 1024).toFixed(2)} MB`,
-					].join('\n'),
+					]
+						.join('\n')
+						.slice(0, 2000),
 				})
 				.catch(console.error);
 		},

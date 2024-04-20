@@ -16,7 +16,6 @@ import {
 	youtube_channels,
 } from '../database';
 import { getChannels } from '../youtube-data-api-v3/functions';
-import logger from '../logging';
 const commands: Commands = {
 	track: {
 		data: {
@@ -832,6 +831,813 @@ const commands: Commands = {
 					}),
 				);
 			} catch (e) {
+				console.error(e);
+			}
+		},
+	},
+	enable_fastestchannels: {
+		data: {
+			options: [
+				{
+					channel_types: [5, 0, 11],
+					name: 'text_channel',
+					description:
+						'The channel to send the fastest channels notifications to.',
+					required: false,
+					type: 7,
+				},
+			],
+			// cheatsheet:
+			// integration_types = basically allows the command to be used in servers / users, 0 = servers, 1 = everywhere else (use both if want everywhere)
+			// contexts =
+			/*NAME	TYPE	DESCRIPTION
+			  GUILD	0	Interaction can be used within servers
+			  BOT_DM	1	Interaction can be used within DMs with the app's bot user
+			  PRIVATE_CHANNEL	2
+			*/
+			integration_types: [0],
+			contexts: [0, 1],
+			name: 'enable_fastestchannels',
+			description:
+				'Automatically sends fastest channel notifications (currently min. 100K/day avg.)',
+		},
+		execute: async (interaction) => {
+			try {
+				await interaction.deferReply({ ephemeral: true }).catch(console.error);
+				const isDM = interaction.inGuild() == false;
+				const getChannel =
+					interaction.options?.get('text_channel')?.channel?.id ??
+					interaction.channelId;
+				if (isDM == true && (config.bot.privateMessages as boolean) == false)
+					return await interaction
+						.editReply({
+							embeds: [
+								QuickMakeEmbed(
+									{
+										color: 'Red',
+										title:
+											'Tracking channels in direct messages has been disabled.',
+										description: `If you are the owner of the bot, enable it in the \`config.ts\` file.\n\n**Aren't the owner?** Host your own version of the bot!\nJust grab the code from our [Github](<https://github.com/NiaAxern/discord-youtube-subscriber-count>), set it up and run it!`,
+									},
+									interaction,
+								),
+							],
+						})
+						.catch(console.error);
+				else if (isDM == false) {
+					const hasPermissions =
+						interaction.memberPermissions?.has('Administrator') ||
+						interaction.memberPermissions?.has('ManageGuild') ||
+						interaction.memberPermissions?.has('ManageChannels') ||
+						false;
+					if (hasPermissions == false)
+						return await interaction.editReply({
+							embeds: [
+								QuickMakeEmbed(
+									{
+										color: 'Red',
+										title: "You don't have permissions",
+										description: `Here are the permissions that you need to atleast one enabled:
+									**Administrator**: ${interaction.memberPermissions?.has('Administrator')}
+									**ManageGuild**: ${interaction.memberPermissions?.has('ManageGuild')}
+									**ManageChannels**: ${interaction.memberPermissions?.has('ManageChannels')}`,
+									},
+									interaction,
+								),
+							],
+						});
+					const botPermissions =
+						(interaction.channel
+							?.permissionsFor(interaction.client.user)
+							?.has('SendMessages') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('EmbedLinks') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('AddReactions') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('AttachFiles') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('SendMessagesInThreads')) ||
+						false;
+
+					if (botPermissions == false)
+						return await interaction.editReply({
+							embeds: [
+								QuickMakeEmbed(
+									{
+										color: 'Red',
+										title: "The bot doesn't have permissions",
+										description: `Here are the permissions that the bot has to have enabled:
+										**SendMessages**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('SendMessages')}
+										**EmbedLinks**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('EmbedLinks')}
+										**AddReactions**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('AddReactions')}
+										**AttachFiles**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('AttachFiles')}
+										**SendMessagesInThreads**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('SendMessagesInThreads')}`,
+									},
+									interaction,
+								),
+							],
+						});
+				}
+				// after everything has been successfully been done we respond with the all done message!
+				let getText = interaction.client.channels.cache.get(getChannel);
+				if (!getText) {
+					await interaction.client.channels
+						.fetch(getChannel)
+						.catch(console.error);
+					getText = interaction.client.channels.cache.get(getChannel);
+				}
+				if (!getText)
+					return await interaction
+						.editReply({
+							embeds: [
+								QuickMakeEmbed(
+									{
+										color: 'Red',
+										title: 'Something went wrong.',
+										description: `We can't find the discord channel <#${getChannel}>.\nThis should rarely happen.`,
+									},
+									interaction,
+								),
+							],
+						})
+						.catch(console.error);
+				if ((config.bot?.disableLimits as boolean) != true) {
+					const checkForLimitsGuild =
+						interaction.guild?.id != null
+							? subscribes.filter((a) => a?.guild_id == interaction.guild?.id)
+									.length
+							: null;
+					const checkForLimitsChannel =
+						interaction.channel?.id != null
+							? subscribes.filter(
+									(a) => a?.discord_channel == interaction.channel?.id,
+							  ).length // eslint-disable-line
+							: null;
+					//FIXME: PRETTIER BREAKS THIS! thats why it has disable line rule!
+					if (
+						checkForLimitsGuild != null &&
+						checkForLimitsGuild >= (config.bot?.guildMax ?? 100)
+					)
+						return await interaction
+							.editReply({
+								embeds: [
+									QuickMakeEmbed(
+										{
+											color: 'Red',
+											title:
+												'This guild has hit the ' +
+												(config.bot?.guildMax ?? 100) +
+												' channel max tracking limit', // FIXME: english is hard
+											description: `If you are the owner of the bot, increase 'guildmax' value in the \`config.ts\` file.\n\n**Aren't the owner?** Host your own version of the bot!\nJust grab the code from our [Github](<https://github.com/NiaAxern/discord-youtube-subscriber-count>), set it up and run it!`,
+										},
+										interaction,
+									),
+								],
+							})
+							.catch(console.error);
+					if (
+						checkForLimitsChannel != null &&
+						checkForLimitsChannel >= (config.bot?.textChannelMax ?? 50)
+					)
+						return await interaction
+							.editReply({
+								embeds: [
+									QuickMakeEmbed(
+										{
+											color: 'Red',
+											title:
+												'This text channel has hit the ' +
+												(config.bot?.textChannelMax ?? 50) +
+												' channel max tracking limit', // FIXME: english isnt my city
+											description: `If you are the owner of the bot, increase 'textchannelmax' value in the \`config.ts\` file.\n\n**Aren't the owner?** Host your own version of the bot!\nJust grab the code from our [Github](<https://github.com/NiaAxern/discord-youtube-subscriber-count>), set it up and run it!`,
+										},
+										interaction,
+									),
+								],
+							})
+							.catch(console.error);
+				}
+				const subscribeToChannel = subscribe(
+					'fastestchannels',
+					interaction.guild?.id != null,
+					getChannel,
+					interaction.user.id,
+				);
+				if (subscribeToChannel == false)
+					return await interaction
+						.editReply({
+							embeds: [
+								QuickMakeEmbed(
+									{
+										color: 'Red',
+										title: 'This channel is most likely already tracked',
+										description: `in <#${getChannel}>.`,
+									},
+									interaction,
+								),
+							],
+						})
+						.catch(console.error);
+				const opt = {
+					embeds: [
+						QuickMakeEmbed(
+							{
+								color: 'Green',
+								title: `Automatic fastest channels has been successfully added to <#${getChannel}>!`,
+								description: `***The channel will start receiving notifications soon.***`,
+							},
+							interaction,
+						),
+					],
+				};
+				if (getText.isTextBased() == true && getText.isDMBased() == false) {
+					await getText.send(opt).catch(console.error);
+				}
+				return await interaction.editReply(opt).catch(console.error);
+			} catch (e) {
+				await interaction.followUp({
+					ephemeral: true,
+					content: 'An error happened!',
+				});
+				console.error(e);
+			}
+		},
+	},
+	disable_fastestchannels: {
+		data: {
+			options: [
+				{
+					channel_types: [5, 0, 11],
+					name: 'text_channel',
+					description: 'The channel to untrack the channel from.',
+					required: false,
+					type: 7,
+				},
+			],
+			integration_types: [0],
+			contexts: [0, 1],
+			name: 'disable_fastestchannels',
+			description: 'Disable fastest channel tracking.',
+		},
+		execute: async (interaction) => {
+			await interaction.deferReply({ ephemeral: true }).catch(console.error);
+			try {
+				const isDM = interaction.inGuild() == false;
+				const getChannel =
+					interaction.options?.get('text_channel')?.channel?.id ??
+					interaction.channelId;
+				if (isDM == false) {
+					const hasPermissions =
+						interaction.memberPermissions?.has('Administrator') ||
+						interaction.memberPermissions?.has('ManageGuild') ||
+						interaction.memberPermissions?.has('ManageChannels') ||
+						false;
+					if (hasPermissions == false)
+						return await interaction
+							.editReply({
+								embeds: [
+									QuickMakeEmbed(
+										{
+											color: 'Red',
+											title: "You don't have permissions",
+											description: `Here are the permissions that you need to atleast one enabled:
+									**Administrator**: ${interaction.memberPermissions?.has('Administrator')}
+									**ManageGuild**: ${interaction.memberPermissions?.has('ManageGuild')}
+									**ManageChannels**: ${interaction.memberPermissions?.has('ManageChannels')}`,
+										},
+										interaction,
+									),
+								],
+							})
+							.catch(console.error);
+					const botPermissions =
+						(interaction.channel
+							?.permissionsFor(interaction.client.user)
+							?.has('SendMessages') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('EmbedLinks') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('AddReactions') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('AttachFiles') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('SendMessagesInThreads')) ||
+						false;
+
+					if (botPermissions == false)
+						return await interaction
+							.editReply({
+								embeds: [
+									QuickMakeEmbed(
+										{
+											color: 'Red',
+											title: "The bot doesn't have permissions",
+											description: `Here are the permissions that the bot has to have enabled:
+										**SendMessages**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('SendMessages')}
+										**EmbedLinks**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('EmbedLinks')}
+										**AddReactions**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('AddReactions')}
+										**AttachFiles**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('AttachFiles')}
+										**SendMessagesInThreads**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('SendMessagesInThreads')}`,
+										},
+										interaction,
+									),
+								],
+							})
+							.catch(console.error);
+				}
+
+				// after everything has been successfully been done we respond with the all done message!
+				let getText = interaction.client.channels.cache.get(getChannel);
+				if (!getText) {
+					await interaction.client.channels
+						.fetch(getChannel)
+						.catch(console.error);
+					getText = interaction.client.channels.cache.get(getChannel);
+				}
+				if (!getText)
+					return await interaction
+						.editReply({
+							embeds: [
+								QuickMakeEmbed(
+									{
+										color: 'Red',
+										title: 'Something went wrong.',
+										description: `We can't find the discord channel <#${getChannel}>.\nThis should rarely happen.`,
+									},
+									interaction,
+								),
+							],
+						})
+						.catch(console.error);
+				const subscribeToChannel = unsubscribe('fastestchannels', getChannel);
+				if (subscribeToChannel == false)
+					return await interaction
+						.editReply({
+							embeds: [
+								QuickMakeEmbed(
+									{
+										color: 'Red',
+										title: 'This channel is most likely not even tracked.',
+										description: `in <#${getChannel}>.`,
+									},
+									interaction,
+								),
+							],
+						})
+						.catch(console.error);
+				const opt = {
+					embeds: [
+						QuickMakeEmbed(
+							{
+								color: 'Green',
+								title: `Fastest channels has been disabled in <#${getChannel}>!`,
+								description: `**Channel should stop receiving notifications soon.**`,
+							},
+							interaction,
+						),
+					],
+				};
+				if (getText.isTextBased() == true && getText.isDMBased() == false) {
+					await getText.send(opt).catch(console.error);
+				}
+				return await interaction.editReply(opt).catch(console.error);
+			} catch (e) {
+				await interaction.followUp({
+					ephemeral: true,
+					content: 'An error happened!',
+				});
+				console.error(e);
+			}
+		},
+	},
+	enable_milestones: {
+		data: {
+			options: [
+				{
+					channel_types: [5, 0, 11],
+					name: 'text_channel',
+					description: 'The channel to send the milestone notifications to.',
+					required: false,
+					type: 7,
+				},
+			],
+			// cheatsheet:
+			// integration_types = basically allows the command to be used in servers / users, 0 = servers, 1 = everywhere else (use both if want everywhere)
+			// contexts =
+			/*NAME	TYPE	DESCRIPTION
+			  GUILD	0	Interaction can be used within servers
+			  BOT_DM	1	Interaction can be used within DMs with the app's bot user
+			  PRIVATE_CHANNEL	2
+			*/
+			integration_types: [0],
+			contexts: [0, 1],
+			name: 'enable_milestones',
+			description:
+				'Automatically sends milestone notifications. This MAY send a lot of messages so be aware!',
+		},
+		execute: async (interaction) => {
+			try {
+				await interaction.deferReply({ ephemeral: true }).catch(console.error);
+				const isDM = interaction.inGuild() == false;
+				const getChannel =
+					interaction.options?.get('text_channel')?.channel?.id ??
+					interaction.channelId;
+				if (isDM == true && (config.bot.privateMessages as boolean) == false)
+					return await interaction
+						.editReply({
+							embeds: [
+								QuickMakeEmbed(
+									{
+										color: 'Red',
+										title:
+											'Tracking channels in direct messages has been disabled.',
+										description: `If you are the owner of the bot, enable it in the \`config.ts\` file.\n\n**Aren't the owner?** Host your own version of the bot!\nJust grab the code from our [Github](<https://github.com/NiaAxern/discord-youtube-subscriber-count>), set it up and run it!`,
+									},
+									interaction,
+								),
+							],
+						})
+						.catch(console.error);
+				else if (isDM == false) {
+					const hasPermissions =
+						interaction.memberPermissions?.has('Administrator') ||
+						interaction.memberPermissions?.has('ManageGuild') ||
+						interaction.memberPermissions?.has('ManageChannels') ||
+						false;
+					if (hasPermissions == false)
+						return await interaction.editReply({
+							embeds: [
+								QuickMakeEmbed(
+									{
+										color: 'Red',
+										title: "You don't have permissions",
+										description: `Here are the permissions that you need to atleast one enabled:
+									**Administrator**: ${interaction.memberPermissions?.has('Administrator')}
+									**ManageGuild**: ${interaction.memberPermissions?.has('ManageGuild')}
+									**ManageChannels**: ${interaction.memberPermissions?.has('ManageChannels')}`,
+									},
+									interaction,
+								),
+							],
+						});
+					const botPermissions =
+						(interaction.channel
+							?.permissionsFor(interaction.client.user)
+							?.has('SendMessages') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('EmbedLinks') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('AddReactions') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('AttachFiles') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('SendMessagesInThreads')) ||
+						false;
+
+					if (botPermissions == false)
+						return await interaction.editReply({
+							embeds: [
+								QuickMakeEmbed(
+									{
+										color: 'Red',
+										title: "The bot doesn't have permissions",
+										description: `Here are the permissions that the bot has to have enabled:
+										**SendMessages**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('SendMessages')}
+										**EmbedLinks**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('EmbedLinks')}
+										**AddReactions**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('AddReactions')}
+										**AttachFiles**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('AttachFiles')}
+										**SendMessagesInThreads**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('SendMessagesInThreads')}`,
+									},
+									interaction,
+								),
+							],
+						});
+				}
+				// after everything has been successfully been done we respond with the all done message!
+				let getText = interaction.client.channels.cache.get(getChannel);
+				if (!getText) {
+					await interaction.client.channels
+						.fetch(getChannel)
+						.catch(console.error);
+					getText = interaction.client.channels.cache.get(getChannel);
+				}
+				if (!getText)
+					return await interaction
+						.editReply({
+							embeds: [
+								QuickMakeEmbed(
+									{
+										color: 'Red',
+										title: 'Something went wrong.',
+										description: `We can't find the discord channel <#${getChannel}>.\nThis should rarely happen.`,
+									},
+									interaction,
+								),
+							],
+						})
+						.catch(console.error);
+				if ((config.bot?.disableLimits as boolean) != true) {
+					const checkForLimitsGuild =
+						interaction.guild?.id != null
+							? subscribes.filter((a) => a?.guild_id == interaction.guild?.id)
+									.length
+							: null;
+					const checkForLimitsChannel =
+						interaction.channel?.id != null
+							? subscribes.filter(
+									(a) => a?.discord_channel == interaction.channel?.id,
+							  ).length // eslint-disable-line
+							: null;
+					//FIXME: PRETTIER BREAKS THIS! thats why it has disable line rule!
+					if (
+						checkForLimitsGuild != null &&
+						checkForLimitsGuild >= (config.bot?.guildMax ?? 100)
+					)
+						return await interaction
+							.editReply({
+								embeds: [
+									QuickMakeEmbed(
+										{
+											color: 'Red',
+											title:
+												'This guild has hit the ' +
+												(config.bot?.guildMax ?? 100) +
+												' channel max tracking limit', // FIXME: english is hard
+											description: `If you are the owner of the bot, increase 'guildmax' value in the \`config.ts\` file.\n\n**Aren't the owner?** Host your own version of the bot!\nJust grab the code from our [Github](<https://github.com/NiaAxern/discord-youtube-subscriber-count>), set it up and run it!`,
+										},
+										interaction,
+									),
+								],
+							})
+							.catch(console.error);
+					if (
+						checkForLimitsChannel != null &&
+						checkForLimitsChannel >= (config.bot?.textChannelMax ?? 50)
+					)
+						return await interaction
+							.editReply({
+								embeds: [
+									QuickMakeEmbed(
+										{
+											color: 'Red',
+											title:
+												'This text channel has hit the ' +
+												(config.bot?.textChannelMax ?? 50) +
+												' channel max tracking limit', // FIXME: english isnt my city
+											description: `If you are the owner of the bot, increase 'textchannelmax' value in the \`config.ts\` file.\n\n**Aren't the owner?** Host your own version of the bot!\nJust grab the code from our [Github](<https://github.com/NiaAxern/discord-youtube-subscriber-count>), set it up and run it!`,
+										},
+										interaction,
+									),
+								],
+							})
+							.catch(console.error);
+				}
+				const subscribeToChannel = subscribe(
+					'milestones',
+					interaction.guild?.id != null,
+					getChannel,
+					interaction.user.id,
+				);
+				if (subscribeToChannel == false)
+					return await interaction
+						.editReply({
+							embeds: [
+								QuickMakeEmbed(
+									{
+										color: 'Red',
+										title: 'This channel is most likely already tracked',
+										description: `in <#${getChannel}>.`,
+									},
+									interaction,
+								),
+							],
+						})
+						.catch(console.error);
+				const opt = {
+					embeds: [
+						QuickMakeEmbed(
+							{
+								color: 'Green',
+								title: `Automatic milestones has been successfully added to <#${getChannel}>!`,
+								description: `***The channel will start receiving notifications soon.***`,
+							},
+							interaction,
+						),
+					],
+				};
+				if (getText.isTextBased() == true && getText.isDMBased() == false) {
+					await getText.send(opt).catch(console.error);
+				}
+				return await interaction.editReply(opt).catch(console.error);
+			} catch (e) {
+				await interaction.followUp({
+					ephemeral: true,
+					content: 'An error happened!',
+				});
+				console.error(e);
+			}
+		},
+	},
+	disable_milestones: {
+		data: {
+			options: [
+				{
+					channel_types: [5, 0, 11],
+					name: 'text_channel',
+					description: 'The channel to untrack the channel from.',
+					required: false,
+					type: 7,
+				},
+			],
+			integration_types: [0],
+			contexts: [0, 1],
+			name: 'disable_milestones',
+			description: 'Disable milestone messages.',
+		},
+		execute: async (interaction) => {
+			await interaction.deferReply({ ephemeral: true }).catch(console.error);
+			try {
+				const isDM = interaction.inGuild() == false;
+				const getChannel =
+					interaction.options?.get('text_channel')?.channel?.id ??
+					interaction.channelId;
+				if (isDM == false) {
+					const hasPermissions =
+						interaction.memberPermissions?.has('Administrator') ||
+						interaction.memberPermissions?.has('ManageGuild') ||
+						interaction.memberPermissions?.has('ManageChannels') ||
+						false;
+					if (hasPermissions == false)
+						return await interaction
+							.editReply({
+								embeds: [
+									QuickMakeEmbed(
+										{
+											color: 'Red',
+											title: "You don't have permissions",
+											description: `Here are the permissions that you need to atleast one enabled:
+									**Administrator**: ${interaction.memberPermissions?.has('Administrator')}
+									**ManageGuild**: ${interaction.memberPermissions?.has('ManageGuild')}
+									**ManageChannels**: ${interaction.memberPermissions?.has('ManageChannels')}`,
+										},
+										interaction,
+									),
+								],
+							})
+							.catch(console.error);
+					const botPermissions =
+						(interaction.channel
+							?.permissionsFor(interaction.client.user)
+							?.has('SendMessages') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('EmbedLinks') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('AddReactions') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('AttachFiles') &&
+							interaction.channel
+								?.permissionsFor(interaction.client.user)
+								?.has('SendMessagesInThreads')) ||
+						false;
+
+					if (botPermissions == false)
+						return await interaction
+							.editReply({
+								embeds: [
+									QuickMakeEmbed(
+										{
+											color: 'Red',
+											title: "The bot doesn't have permissions",
+											description: `Here are the permissions that the bot has to have enabled:
+										**SendMessages**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('SendMessages')}
+										**EmbedLinks**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('EmbedLinks')}
+										**AddReactions**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('AddReactions')}
+										**AttachFiles**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('AttachFiles')}
+										**SendMessagesInThreads**: ${interaction.channel
+											?.permissionsFor(interaction.client.user)
+											?.has('SendMessagesInThreads')}`,
+										},
+										interaction,
+									),
+								],
+							})
+							.catch(console.error);
+				}
+
+				// after everything has been successfully been done we respond with the all done message!
+				let getText = interaction.client.channels.cache.get(getChannel);
+				if (!getText) {
+					await interaction.client.channels
+						.fetch(getChannel)
+						.catch(console.error);
+					getText = interaction.client.channels.cache.get(getChannel);
+				}
+				if (!getText)
+					return await interaction
+						.editReply({
+							embeds: [
+								QuickMakeEmbed(
+									{
+										color: 'Red',
+										title: 'Something went wrong.',
+										description: `We can't find the discord channel <#${getChannel}>.\nThis should rarely happen.`,
+									},
+									interaction,
+								),
+							],
+						})
+						.catch(console.error);
+				const subscribeToChannel = unsubscribe('milestones', getChannel);
+				if (subscribeToChannel == false)
+					return await interaction
+						.editReply({
+							embeds: [
+								QuickMakeEmbed(
+									{
+										color: 'Red',
+										title: 'This channel is most likely not even tracked.',
+										description: `in <#${getChannel}>.`,
+									},
+									interaction,
+								),
+							],
+						})
+						.catch(console.error);
+				const opt = {
+					embeds: [
+						QuickMakeEmbed(
+							{
+								color: 'Green',
+								title: `Milestones have been disabled in <#${getChannel}>!`,
+								description: `**Channel should stop receiving notifications soon.**`,
+							},
+							interaction,
+						),
+					],
+				};
+				if (getText.isTextBased() == true && getText.isDMBased() == false) {
+					await getText.send(opt).catch(console.error);
+				}
+				return await interaction.editReply(opt).catch(console.error);
+			} catch (e) {
+				await interaction.followUp({
+					ephemeral: true,
+					content: 'An error happened!',
+				});
 				console.error(e);
 			}
 		},

@@ -8,7 +8,6 @@ import { getChannel_Main } from './innertube/functions';
 import type { updateRecord } from './types/channelType';
 import { cacheSystem } from '.';
 import { QuickMakeEmbed, howLong } from './utilities';
-import logger from './logging';
 import fs from 'fs/promises';
 let updatePossible = true;
 let lastTrackTime = 0;

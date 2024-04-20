@@ -1,7 +1,6 @@
 /** @format */
 
 import { Client, GatewayIntentBits } from 'discord.js';
-import logger from './logging';
 
 import fs from 'fs/promises';
 
@@ -22,3 +21,4 @@ for await (const file of getEvents) {
 	await import('./events/' + file); // auto-load events
 }
 await import('./track-changes');
+await import('./fastest-channels');

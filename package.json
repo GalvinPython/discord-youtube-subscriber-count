@@ -21,8 +21,10 @@
     "discord.js": "latest",
     "eslint": "^8.56.0",
     "snappy": "^7.2.2",
+    "socket.io-client": "^4.7.5",
     "typescript": "^5.0.0",
     "typescript-eslint": "^7.0.1",
+    "uWebSockets.js": "uNetworking/uWebSockets.js#v20.43.0",
     "winston": "^3.13.0",
     "zod": "^3.22.4"
   }
