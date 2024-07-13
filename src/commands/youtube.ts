@@ -421,6 +421,7 @@ const commands: Commands = {
     },
     execute: async (interaction) => {
       try {
+		await interaction.deferReply({ ephemeral: true }).catch(console.error);
         const isDM = interaction.inGuild() == false;
         const getChannel =
           interaction.options?.get('text_channel')?.channel?.id ??
