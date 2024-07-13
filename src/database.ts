@@ -19,18 +19,17 @@ await fs.stat('data/meta.json').catch(async (e) => {
   );
   await fs.writeFile(
     'data/meta.json',
-    await compress(
-      JSON.stringify({
-        youtube_channels: [],
-        subscribes: [],
-      })
-    )
+    JSON.stringify({
+      youtube_channels: [],
+      subscribes: [],
+    })
   );
   console.log('data/meta.json file has been made.');
 });
 
 const metaFile = Bun.file('data/meta.json');
-const { youtube_channels, subscribes }: Metafile = await metaFile.json()
+const metaFile2 = Bun.file('data/meta_uncompressed.json');
+const { youtube_channels, subscribes }: Metafile = await metaFile.json().catch(console.error)??await metaFile2.json().catch(console.error);
 function getYTChannel(id: string) {
   return youtube_channels.find((record) => record.channel_id == id);
 }
