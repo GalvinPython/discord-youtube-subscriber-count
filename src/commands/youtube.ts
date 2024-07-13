@@ -391,7 +391,6 @@ const commands: Commands = {
     data: {
       options: [
         {
-          autocomplete: true,
           type: 3,
           name: 'query',
           description: 'Query to search with. For multiple, seperate by comma.',
