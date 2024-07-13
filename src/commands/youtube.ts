@@ -901,6 +901,129 @@ const commands: Commands = {
         console.error(e);
       }
     },
+    button: async (interaction) => {
+      await interaction.deferReply({ ephemeral: true }).catch(console.error);
+      try {
+        const isDM = interaction.inGuild() == false;
+        const [commandType, getID, getChannel] =
+          interaction.customId.split('$');
+        if (getID.length != 24 || getID.startsWith('UC') == false)
+          return await interaction
+            .editReply({
+              content: `The channel id \`${getID}\` is not a valid channel id.`,
+            })
+            .catch(console.error);
+        if (isDM == false) {
+          const hasPermissions =
+            interaction.memberPermissions?.has('Administrator') ||
+            interaction.memberPermissions?.has('ManageGuild') ||
+            interaction.memberPermissions?.has('ManageChannels') ||
+            false;
+          if (hasPermissions == false)
+            return await interaction
+              .editReply({
+                content: `#You don't have permissions\nHere are the permissions that you need to atleast one enabled:
+									**Administrator**: ${interaction.memberPermissions?.has('Administrator')}
+									**ManageGuild**: ${interaction.memberPermissions?.has('ManageGuild')}
+									**ManageChannels**: ${interaction.memberPermissions?.has('ManageChannels')}`,
+              })
+              .catch(console.error);
+          const botPermissions =
+            (interaction.channel
+              ?.permissionsFor(interaction.client.user)
+              ?.has('SendMessages') &&
+              interaction.channel
+                ?.permissionsFor(interaction.client.user)
+                ?.has('EmbedLinks') &&
+              interaction.channel
+                ?.permissionsFor(interaction.client.user)
+                ?.has('AddReactions') &&
+              interaction.channel
+                ?.permissionsFor(interaction.client.user)
+                ?.has('AttachFiles') &&
+              interaction.channel
+                ?.permissionsFor(interaction.client.user)
+                ?.has('SendMessagesInThreads')) ||
+            false;
+
+          if (botPermissions == false)
+            return await interaction
+              .editReply({
+                content: `#The bot doesn't have permissions\nHere are the permissions that the bot has to have enabled:
+										**SendMessages**: ${interaction.channel
+                      ?.permissionsFor(interaction.client.user)
+                      ?.has('SendMessages')}
+										**EmbedLinks**: ${interaction.channel
+                      ?.permissionsFor(interaction.client.user)
+                      ?.has('EmbedLinks')}
+										**AddReactions**: ${interaction.channel
+                      ?.permissionsFor(interaction.client.user)
+                      ?.has('AddReactions')}
+										**AttachFiles**: ${interaction.channel
+                      ?.permissionsFor(interaction.client.user)
+                      ?.has('AttachFiles')}
+										**SendMessagesInThreads**: ${interaction.channel
+                      ?.permissionsFor(interaction.client.user)
+                      ?.has('SendMessagesInThreads')}`,
+              })
+              .catch(console.error);
+        }
+        const checkCache = await cacheSystem.get(getID).catch(() => {
+          return null;
+        });
+        let channel: Channel =
+          checkCache != null ? await JSON.parse(checkCache) : null;
+        if (!checkCache) {
+          const getAPI = await getChannels(getID);
+          channel = getAPI?.[0]; // Fixes topic channels ^^
+        }
+
+        // after everything has been successfully been done we respond with the all done message!
+        let getText = interaction.client.channels.cache.get(getChannel);
+        if (!getText) {
+          await interaction.client.channels
+            .fetch(getChannel)
+            .catch(console.error);
+          getText = interaction.client.channels.cache.get(getChannel);
+        }
+        if (!getText)
+          return await interaction
+            .editReply({
+              content: `#Something went wrong.\nWe can't find the discord channel <#${getChannel}>.\nThis should rarely happen.`,
+            })
+            .catch(console.error);
+        const subscribeToChannel = unsubscribe(getID, getChannel);
+        if (subscribeToChannel == false)
+          return await interaction
+            .editReply({
+              content: `#This channel is most likely not even tracked.\nin <#${getChannel}>.`,
+            })
+            .catch(console.error);
+        const opt = {
+          content: `# Channel has been successfully untracked in <#${getChannel}>!
+			**${channel.title}** with ${channel.subscribers?.toLocaleString(
+            'en-US'
+          )} subscribers has been untracked by <@${
+            interaction.user.id
+          }> from <#${getChannel}> ${
+            interaction.guild?.name != null
+              ? `in **${interaction.guild?.name}**`
+              : ''
+          }
+			`,
+        };
+        if (getText.isTextBased() == true && getText.isDMBased() == false) {
+          await getText.send(opt).catch(console.error);
+        }
+        return await interaction.editReply(opt).catch(console.error);
+      } catch (e) {
+        await interaction.followUp({
+          ephemeral: true,
+          content: 'An error happened!',
+        });
+        console.error(e);
+      }
+    },
     autoComplete: async (interaction) => {
       try {
         const isDM = interaction.inGuild() == false;
@@ -1176,13 +1299,14 @@ const commands: Commands = {
           interaction.options?.get('text_channel')?.channel?.id ??
           interaction.channelId;
         await interaction.deferReply({ ephemeral: true }).catch(console.error);
-        const subs = subscribes.filter(
-          (a) => a.discord_channel == getChannel
-        );
+        const subs = subscribes.filter((a) => a.discord_channel == getChannel);
         await interaction
-          .editReply('If you have a lot of channels, you might get spammed. '+`(${Math.round(subs.length/5)} times)`)
+          .editReply(
+            'If you have a lot of channels, you might get spammed. ' +
+              `(${Math.round(subs.length / 5)} times)`
+          )
           .catch(console.error);
-		console.log(subs);
+        console.log(subs);
         let resps = [];
         let act_row = new ActionRowBuilder();
 
@@ -1192,24 +1316,37 @@ const commands: Commands = {
             .catch(() => null);
           let channel: Channel =
             checkCache != null ? await JSON.parse(checkCache) : null;
-			
-          if (!checkCache && subscriber.channel_id.length == 24 && subscriber.channel_id.startsWith('UC')) {
+
+          if (
+            !checkCache &&
+            subscriber.channel_id.length == 24 &&
+            subscriber.channel_id.startsWith('UC')
+          ) {
             const getAPI = await getChannels(subscriber.channel_id);
-            channel = getAPI?.[0]??{channel_id: subscriber.channel_id}; // Fixes topic channels ^^
+            channel = getAPI?.[0] ?? { channel_id: subscriber.channel_id }; // Fixes topic channels ^^
           }
           const opt = {
-            content: `**${channel?.handle ?? channel?.title ?? subscriber?.channel_id}**: ${(
-              channel?.subscribers ?? 0
-            )?.toLocaleString('en-US')} subscribers`,
+            content: `**${
+              channel?.handle ?? channel?.title ?? subscriber?.channel_id
+            }**: ${(channel?.subscribers ?? 0)?.toLocaleString(
+              'en-US'
+            )} subscribers`,
           } as InteractionReplyOptions;
           resps.push(opt.content);
 
           const confirm = new ButtonBuilder()
-            .setCustomId('untrack_'+subscriber.channel_id)
-            .setLabel('Untrack '+(channel?.handle ?? channel?.title ?? subscriber?.channel_id).slice(0,80))
+            .setCustomId('untrack$' + subscriber.channel_id + '$' + getChannel)
+            .setLabel(
+              'Untrack ' +
+                (
+                  channel?.handle ??
+                  channel?.title ??
+                  subscriber?.channel_id
+                ).slice(0, 80)
+            )
             .setStyle(ButtonStyle.Danger);
           act_row.addComponents(confirm);
-		  console.log(idx, subscriber, resps.length, subs.length);
+          console.log(idx, subscriber, resps.length, subs.length);
           if (resps.length >= 5 || idx == subs.length - 1) {
             await interaction
               .followUp({
