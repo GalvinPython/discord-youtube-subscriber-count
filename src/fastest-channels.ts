@@ -43,6 +43,7 @@ function nextAbbreviationStep(input: number) {
 	return parseFloat(first3 + abbr);
 }
 function connect() {
+	return console.log("feature disabled: FASTEST_CHANNELS")
 	const ws = new WebSocket(`${process.env.FASTEST_CHANNELS_WS}`);
 
 	// Subscribe to some channels or send an initial message

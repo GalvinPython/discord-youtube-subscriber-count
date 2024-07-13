@@ -45,6 +45,8 @@ interface Subscriber {
 	user_id: string;
 	when: string; // toISOString()
 	guild_id?: string; // optional, needed for counting how many users are tracked in a guild
+	user_apps?: boolean; // optional, basically if you want to track a channel in a group
+	user_app_messageID?: string; // required if user_apps is true
 }
 
 export { Channel, Metafile, updateRecord, Averages, Subscriber };

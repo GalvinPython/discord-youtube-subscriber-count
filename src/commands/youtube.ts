@@ -43,16 +43,24 @@ const commands: Commands = {
 			  BOT_DM	1	Interaction can be used within DMs with the app's bot user
 			  PRIVATE_CHANNEL	2
 			*/
-			integration_types: [0],
-			contexts: [0, 1],
+			integration_types: [0, 1],
+			contexts: [0, 1, 2],
 			name: 'track',
 			description:
 				'Track a channel and their subscribers here or a different channel.',
 		},
 		execute: async (interaction) => {
 			try {
-				await interaction.deferReply({ ephemeral: true }).catch(console.error);
 				const isDM = interaction.inGuild() == false;
+				await interaction.reply({"content": "meow"});
+				console.log(interaction.token);
+				const c = await interaction.followUp("Mewing");
+				console.log(c);
+				var started = Date.now();
+				setInterval(async () => {
+					await interaction.followUp(`HHHH ${((Date.now()-started)/60000).toFixed(2)}min`);
+				}, 30000)
+				return;
 				const getChannel =
 					interaction.options?.get('text_channel')?.channel?.id ??
 					interaction.channelId;

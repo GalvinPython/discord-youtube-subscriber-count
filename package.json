@@ -17,6 +17,9 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@stricjs/app": "^1.0.0-rc.34",
+    "@stricjs/router": "^5.0.6",
+    "@stricjs/utils": "^2.0.7",
     "discord-api-types": "^0.37.76",
     "discord.js": "latest",
     "eslint": "^8.56.0",
