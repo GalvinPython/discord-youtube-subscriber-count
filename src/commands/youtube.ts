@@ -674,74 +674,14 @@ const commands: Commands = {
           if (getText.isTextBased() == true && getText.isDMBased() == false) {
             await getText.send(opt).catch(console.error);
           }
-          await interaction.followUp(opt).catch(console.error);
+          await interaction.followUp({ephemeral: true, ...opt}).catch(console.error);
         }
-        await interaction.followUp('all done!').catch(console.error);
+        await interaction.editReply('all done!').catch(console.error);
       } catch (e) {
         await interaction.followUp({
           ephemeral: true,
           content: 'An error happened!',
         });
-        console.error(e);
-      }
-    },
-    autoComplete: async (interaction) => {
-      try {
-        const isDM = interaction.inGuild() == false;
-        if (isDM == true && (config.bot.privateMessages as boolean) == false)
-          return await interaction.respond([]);
-        else if (isDM == false) {
-          const hasPermissions =
-            interaction.memberPermissions?.has('Administrator') ||
-            interaction.memberPermissions?.has('ManageGuild') ||
-            interaction.memberPermissions?.has('ManageChannels') ||
-            false;
-          if (hasPermissions == false) return await interaction.respond([]);
-          /*const botPermissions =
-					(interaction.channel
-						?.permissionsFor(interaction.client.user)
-						?.has('SendMessages') &&
-						interaction.channel
-							?.permissionsFor(interaction.client.user)
-							?.has('EmbedLinks') &&
-						interaction.channel
-							?.permissionsFor(interaction.client.user)
-							?.has('AddReactions') &&
-						interaction.channel
-							?.permissionsFor(interaction.client.user)
-							?.has('AttachFiles') &&
-						interaction.channel
-							?.permissionsFor(interaction.client.user)
-							?.has('SendMessagesInThreads')) ||
-					false;
-
-				if (botPermissions == false) return await interaction.respond([]);*/
-        }
-        const userQuery = interaction.options?.getString('query');
-        if (userQuery == '' || !userQuery) return await interaction.respond([]);
-        if (userQuery.length == 24 && userQuery.startsWith('UC'))
-          return await interaction.respond([
-            {
-              name: `${userQuery} (using channel id)`,
-              value: userQuery,
-            },
-          ]);
-        const queryYouTube = await searchChannel(userQuery);
-        return await interaction.respond(
-          queryYouTube.map((channel) => {
-            return {
-              // What is shown to the user
-              name: `${channel.title} (${channel.handle}): ${
-                !channel?.subscribers
-                  ? 'No'
-                  : channel.subscribers?.toLocaleString('en-US')
-              } subscriber${channel.subscribers == 1 ? '' : 's'}`,
-              // What is actually used as the option.
-              value: channel.channel_id,
-            };
-          })
-        );
-      } catch (e) {
         console.error(e);
       }
     },
