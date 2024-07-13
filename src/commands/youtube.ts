@@ -1172,42 +1172,45 @@ const commands: Commands = {
     },
     execute: async (interaction) => {
       try {
+        const getChannel =
+          interaction.options?.get('text_channel')?.channel?.id ??
+          interaction.channelId;
         await interaction.deferReply({ ephemeral: true }).catch(console.error);
-        await interaction
-          .editReply('If you have a lot of channels, you might get spammed.')
-          .catch(console.error);
         const subs = subscribes.filter(
-          (a) => a.discord_channel == interaction.channelId
+          (a) => a.discord_channel == getChannel
         );
-
+        await interaction
+          .editReply('If you have a lot of channels, you might get spammed. '+`(${Math.round(subs.length/5)} times)`)
+          .catch(console.error);
+		console.log(subs);
         let resps = [];
         let act_row = new ActionRowBuilder();
 
         for await (let [idx, subscriber] of subs.entries()) {
           const checkCache = await cacheSystem
             .get(subscriber.channel_id)
-            .catch(() => {
-              return null;
-            });
+            .catch(() => null);
           let channel: Channel =
             checkCache != null ? await JSON.parse(checkCache) : null;
-          if (!checkCache) {
+			
+          if (!checkCache && subscriber.channel_id.length == 24 && subscriber.channel_id.startsWith('UC')) {
             const getAPI = await getChannels(subscriber.channel_id);
             channel = getAPI?.[0]??{channel_id: subscriber.channel_id}; // Fixes topic channels ^^
           }
           const opt = {
-            content: `**${channel.handle ?? channel.channel_id}**: ${(
+            content: `**${channel?.handle ?? channel?.title ?? subscriber?.channel_id}**: ${(
               channel?.subscribers ?? 0
             )?.toLocaleString('en-US')} subscribers`,
           } as InteractionReplyOptions;
           resps.push(opt.content);
 
           const confirm = new ButtonBuilder()
-            .setCustomId('confirm')
-            .setLabel('Confirm Ban')
+            .setCustomId('untrack_'+subscriber.channel_id)
+            .setLabel('Untrack '+(channel?.handle ?? channel?.title ?? subscriber?.channel_id).slice(0,80))
             .setStyle(ButtonStyle.Danger);
           act_row.addComponents(confirm);
-          if (resps.length > 10 || idx == subs.length - 1) {
+		  console.log(idx, subscriber, resps.length, subs.length);
+          if (resps.length >= 5 || idx == subs.length - 1) {
             await interaction
               .followUp({
                 ephemeral: true,
