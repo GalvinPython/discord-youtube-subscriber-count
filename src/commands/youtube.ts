@@ -727,22 +727,7 @@ const commands: Commands = {
           interaction.channelId;
         const getID: string =
           interaction.options?.get('query')?.value?.toString() ??
-          "(You didn't enter any channelID's";
-        if (getID.length != 24 || getID.startsWith('UC') == false)
-          return await interaction
-            .editReply({
-              embeds: [
-                QuickMakeEmbed(
-                  {
-                    color: 'Red',
-                    title: 'Incorrect YouTube channel id!',
-                    description: `The channel id \`${getID}\` is not a valid channel id.`,
-                  },
-                  interaction
-                ),
-              ],
-            })
-            .catch(console.error);
+          "(You didn't enter any channelID's)";
         if (isDM == false) {
           const hasPermissions =
             interaction.memberPermissions?.has('Administrator') ||
@@ -821,9 +806,11 @@ const commands: Commands = {
         });
         let channel: Channel =
           checkCache != null ? await JSON.parse(checkCache) : null;
-        if (!checkCache) {
+        if (!checkCache &&
+            getID.length == 24 &&
+            getID.startsWith('UC')) {
           const getAPI = await getChannels(getID);
-          channel = getAPI[0]; // Fixes topic channels ^^
+          channel = getAPI?.[0]; // Fixes topic channels ^^
         }
 
         // after everything has been successfully been done we respond with the all done message!
@@ -872,8 +859,8 @@ const commands: Commands = {
                 color: 'Green',
                 title: `Channel has been successfully untracked in <#${getChannel}>!`,
                 description: `**${
-                  channel.title
-                }** with ${channel.subscribers?.toLocaleString(
+                  channel?.title??getID
+                }** with ${(channel.subscribers??0)?.toLocaleString(
                   'en-US'
                 )} subscribers has been untracked by <@${
                   interaction.user.id
@@ -885,7 +872,7 @@ const commands: Commands = {
               },
               interaction
             )
-              .setThumbnail(channel.avatar ?? null)
+              .setThumbnail(channel?.avatar ?? null)
               .setURL('https://www.youtube.com/channel/' + getID),
           ],
         };
@@ -907,12 +894,6 @@ const commands: Commands = {
         const isDM = interaction.inGuild() == false;
         const [commandType, getID, getChannel] =
           interaction.customId.split('$');
-        if (getID.length != 24 || getID.startsWith('UC') == false)
-          return await interaction
-            .editReply({
-              content: `The channel id \`${getID}\` is not a valid channel id.`,
-            })
-            .catch(console.error);
         if (isDM == false) {
           const hasPermissions =
             interaction.memberPermissions?.has('Administrator') ||
@@ -922,10 +903,10 @@ const commands: Commands = {
           if (hasPermissions == false)
             return await interaction
               .editReply({
-                content: `#You don't have permissions\nHere are the permissions that you need to atleast one enabled:
-									**Administrator**: ${interaction.memberPermissions?.has('Administrator')}
-									**ManageGuild**: ${interaction.memberPermissions?.has('ManageGuild')}
-									**ManageChannels**: ${interaction.memberPermissions?.has('ManageChannels')}`,
+                content: `# You don't have permissions\nHere are the permissions that you need to atleast one enabled:\n`+
+									`**Administrator**: ${interaction.memberPermissions?.has('Administrator')}\n`+
+									`**ManageGuild**: ${interaction.memberPermissions?.has('ManageGuild')}\n`+
+									`**ManageChannels**: ${interaction.memberPermissions?.has('ManageChannels')}\n`,
               })
               .catch(console.error);
           const botPermissions =
@@ -949,20 +930,20 @@ const commands: Commands = {
           if (botPermissions == false)
             return await interaction
               .editReply({
-                content: `#The bot doesn't have permissions\nHere are the permissions that the bot has to have enabled:
-										**SendMessages**: ${interaction.channel
+                content: `# The bot doesn't have permissions\nHere are the permissions that the bot has to have enabled:\n`+
+										`**SendMessages**: ${interaction.channel
                       ?.permissionsFor(interaction.client.user)
-                      ?.has('SendMessages')}
-										**EmbedLinks**: ${interaction.channel
+                      ?.has('SendMessages')}\n`+
+										`**EmbedLinks**: ${interaction.channel
                       ?.permissionsFor(interaction.client.user)
-                      ?.has('EmbedLinks')}
-										**AddReactions**: ${interaction.channel
+                      ?.has('EmbedLinks')}\n`+
+										`**AddReactions**: ${interaction.channel
                       ?.permissionsFor(interaction.client.user)
-                      ?.has('AddReactions')}
-										**AttachFiles**: ${interaction.channel
+                      ?.has('AddReactions')}\n`+
+										`**AttachFiles**: ${interaction.channel
                       ?.permissionsFor(interaction.client.user)
-                      ?.has('AttachFiles')}
-										**SendMessagesInThreads**: ${interaction.channel
+                      ?.has('AttachFiles')}\n`+
+										`**SendMessagesInThreads**: ${interaction.channel
                       ?.permissionsFor(interaction.client.user)
                       ?.has('SendMessagesInThreads')}`,
               })
@@ -973,7 +954,9 @@ const commands: Commands = {
         });
         let channel: Channel =
           checkCache != null ? await JSON.parse(checkCache) : null;
-        if (!checkCache) {
+        if (!checkCache &&
+            getID.length == 24 &&
+            getID.startsWith('UC')) {
           const getAPI = await getChannels(getID);
           channel = getAPI?.[0]; // Fixes topic channels ^^
         }
@@ -989,19 +972,19 @@ const commands: Commands = {
         if (!getText)
           return await interaction
             .editReply({
-              content: `#Something went wrong.\nWe can't find the discord channel <#${getChannel}>.\nThis should rarely happen.`,
+              content: `# Something went wrong.\nWe can't find the discord channel <#${getChannel}>.\nThis should rarely happen.`,
             })
             .catch(console.error);
         const subscribeToChannel = unsubscribe(getID, getChannel);
         if (subscribeToChannel == false)
           return await interaction
             .editReply({
-              content: `#This channel is most likely not even tracked.\nin <#${getChannel}>.`,
+              content: `# This channel is most likely not even tracked.\nin <#${getChannel}>.`,
             })
             .catch(console.error);
         const opt = {
-          content: `# Channel has been successfully untracked in <#${getChannel}>!
-			**${channel.title}** with ${channel.subscribers?.toLocaleString(
+          content: `# Channel has been successfully untracked in <#${getChannel}>!\n`+
+			`**${channel?.title??getID}** with ${(channel?.subscribers??0)?.toLocaleString(
             'en-US'
           )} subscribers has been untracked by <@${
             interaction.user.id
