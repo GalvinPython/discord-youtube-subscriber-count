@@ -110,15 +110,7 @@ function connect() {
             value: `${
               Math.floor(data.new.sub_rate || 0).toLocaleString('en-US') ??
               'None'
-            } (${
-              (data.new.sub_rate ?? 0) - (data.old.sub_rate ?? 0) >= 0
-                ? '+'
-                : ''
-            }${
-              Math.floor(
-                (data.new.sub_rate ?? 0) - (data.old.sub_rate ?? 0) || 0
-              ).toLocaleString('en-US') ?? 'None'
-            }) _ _`,
+            }  _ _`,
             inline: true,
           })
           .addFields({
@@ -217,15 +209,7 @@ function connect() {
             value: `${
               Math.floor(data.new.sub_rate || 0).toLocaleString('en-US') ??
               'None'
-            } (${
-              (data.new.sub_rate ?? 0) - (data.old.sub_rate ?? 0) >= 0
-                ? '+'
-                : ''
-            }${
-              Math.floor(
-                (data.new.sub_rate ?? 0) - (data.old.sub_rate ?? 0) || 0
-              ).toLocaleString('en-US') ?? 'None'
-            }) _ _`,
+            } _ _`,
             inline: true,
           })
           .addFields({
