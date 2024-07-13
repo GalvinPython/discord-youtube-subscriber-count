@@ -16,6 +16,12 @@ import {
   youtube_channels,
 } from '../database';
 import { getChannels } from '../youtube-data-api-v3/functions';
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  type InteractionReplyOptions,
+} from 'discord.js';
 const commands: Commands = {
   track: {
     data: {
@@ -674,7 +680,9 @@ const commands: Commands = {
           if (getText.isTextBased() == true && getText.isDMBased() == false) {
             await getText.send(opt).catch(console.error);
           }
-          await interaction.followUp({ephemeral: true, ...opt}).catch(console.error);
+          await interaction
+            .followUp({ ephemeral: true, ...opt })
+            .catch(console.error);
         }
         await interaction.editReply('all done!').catch(console.error);
       } catch (e) {
@@ -1134,6 +1142,88 @@ const commands: Commands = {
           })
         );
       } catch (e) {
+        console.error(e);
+      }
+    },
+  },
+  channels: {
+    data: {
+      options: [
+        {
+          channel_types: [5, 0, 11],
+          name: 'text_channel',
+          description: 'The channel to untrack the channel from.',
+          required: false,
+          type: 7,
+        },
+      ],
+      // cheatsheet:
+      // integration_types = basically allows the command to be used in servers / users, 0 = servers, 1 = everywhere else (use both if want everywhere)
+      // contexts =
+      /*NAME	TYPE	DESCRIPTION
+			  GUILD	0	Interaction can be used within servers
+			  BOT_DM	1	Interaction can be used within DMs with the app's bot user
+			  PRIVATE_CHANNEL	2
+			*/
+      integration_types: [0, 1],
+      contexts: [0, 1],
+      name: 'channels',
+      description: 'See tracked channels in a channel!',
+    },
+    execute: async (interaction) => {
+      try {
+        await interaction.deferReply({ ephemeral: true }).catch(console.error);
+        await interaction
+          .editReply('If you have a lot of channels, you might get spammed.')
+          .catch(console.error);
+        const subs = subscribes.filter(
+          (a) => a.discord_channel == interaction.channelId
+        );
+
+        let resps = [];
+        let act_row = new ActionRowBuilder();
+
+        for await (let [idx, subscriber] of subs.entries()) {
+          const checkCache = await cacheSystem
+            .get(subscriber.channel_id)
+            .catch(() => {
+              return null;
+            });
+          let channel: Channel =
+            checkCache != null ? await JSON.parse(checkCache) : null;
+          if (!checkCache) {
+            const getAPI = await getChannels(subscriber.channel_id);
+            channel = getAPI?.[0]??{channel_id: subscriber.channel_id}; // Fixes topic channels ^^
+          }
+          const opt = {
+            content: `**${channel.handle ?? channel.channel_id}**: ${(
+              channel?.subscribers ?? 0
+            )?.toLocaleString('en-US')} subscribers`,
+          } as InteractionReplyOptions;
+          resps.push(opt.content);
+
+          const confirm = new ButtonBuilder()
+            .setCustomId('confirm')
+            .setLabel('Confirm Ban')
+            .setStyle(ButtonStyle.Danger);
+          act_row.addComponents(confirm);
+          if (resps.length > 10 || idx == subs.length - 1) {
+            await interaction
+              .followUp({
+                ephemeral: true,
+                content: resps.join('\n'),
+                components: [act_row as ActionRowBuilder<ButtonBuilder>],
+              })
+              .catch(console.error);
+            resps = [];
+            act_row = new ActionRowBuilder();
+          }
+        }
+      } catch (e) {
+        await interaction.followUp({
+          ephemeral: true,
+          content: 'An error happened!',
+        });
         console.error(e);
       }
     },
