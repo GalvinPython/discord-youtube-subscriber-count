@@ -8,7 +8,7 @@ djs_client.once(Events.ClientReady, async (bot) => {
 	bot.user.setPresence({
 		activities: [
 			{
-				name: `Updating ${bot.guilds.cache.size} servers.`,
+				name: `${djs_client.guilds.cache.size} servers and ${djs_client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0).toLocaleString("en-US")} members.`,
 				type: ActivityType.Custom,
 			},
 		],
@@ -20,7 +20,7 @@ setInterval(() => {
 	djs_client.user.setPresence({
 		activities: [
 			{
-				name: `Updating ${djs_client.guilds.cache.size} servers.`,
+				name: `${djs_client.guilds.cache.size} servers and ${djs_client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0).toLocaleString("en-US")} members.`, 
 				type: ActivityType.Custom,
 			},
 		],
